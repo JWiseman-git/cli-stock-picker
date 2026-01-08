@@ -5,7 +5,7 @@ Constructs the StateGraph with nodes, edges, and checkpointing.
 """
 
 from langgraph.graph import StateGraph, START
-from langgraph.checkpoint.sqlite import SqliteSaver
+from langgraph.checkpoint.memory import MemorySaver
 from src.state import AgentState
 from src.agents import (
     supervisor_node,
@@ -13,9 +13,7 @@ from src.agents import (
     analyst_node,
     human_review_node
 )
-from src.config import Config
 import logging
-import os
 
 logger = logging.getLogger(__name__)
 
@@ -53,13 +51,12 @@ def create_graph():
     # The supervisor's Command.goto determines the next node
 
     # Setup checkpointer for persistence
-    db_path = Config.SQLITE_DB_PATH
-    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    # Using MemorySaver instead of SqliteSaver to avoid threading issues
+    # MemorySaver is thread-safe and suitable for single-session usage
+    checkpointer = MemorySaver()
+    logger.info("Checkpointer initialized (MemorySaver)")
 
-    checkpointer = SqliteSaver.from_conn_string(db_path)
-    logger.info(f"Checkpointer initialized at {db_path}")
-
-    # Compile graph
+    # Compile graph with checkpointer
     graph = workflow.compile(checkpointer=checkpointer)
 
     logger.info("Graph compiled successfully")

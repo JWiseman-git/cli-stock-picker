@@ -39,13 +39,13 @@ console = Console()
 def print_banner():
     """Display application banner."""
     banner = """
-# 📈 Stock Intelligence Multi-Agent System
+# Stock Intelligence Multi-Agent System
 
 **Powered by LangGraph | OpenRouter | yfinance**
 
 A professional multi-agent system for intelligent stock analysis with human-in-the-loop decision making.
 """
-    console.print(Panel(Markdown(banner), box=box.DOUBLE, border_style="cyan"))
+    console.print(Panel(Markdown(banner), box=box.DOUBLE, border_style="cyan", title="[bold cyan]STOCK INTELLIGENCE[/bold cyan]"))
 
 
 def print_agent_message(agent: str, message: str):
@@ -64,7 +64,16 @@ def print_agent_message(agent: str, message: str):
     }
     color = colors.get(agent.lower(), "white")
 
-    console.print(f"\n[bold {color}]🤖 {agent.upper()}[/bold {color}]")
+    # Agent icons using ASCII-safe symbols
+    icons = {
+        "supervisor": "[S]",
+        "researcher": "[R]",
+        "analyst": "[A]",
+        "system": "[*]"
+    }
+    icon = icons.get(agent.lower(), ">")
+
+    console.print(f"\n[bold {color}]{icon} {agent.upper()}[/bold {color}]")
     console.print(Panel(message, border_style=color, box=box.ROUNDED))
 
 
@@ -122,7 +131,7 @@ def handle_interrupt(graph, interrupt_data: dict, config: dict) -> Optional[dict
     prompt_text = interrupt_data.get("value", "Awaiting user input...")
 
     console.print("\n" + "="*80, style="yellow")
-    console.print("[bold yellow]🛑 HUMAN REVIEW REQUIRED[/bold yellow]")
+    console.print("[bold yellow]>> HUMAN REVIEW REQUIRED[/bold yellow]")
     console.print("="*80 + "\n", style="yellow")
 
     console.print(Panel(
@@ -206,7 +215,7 @@ def run_analysis(ticker: str):
         # Display final result
         if result:
             console.print("\n" + "="*80, style="green")
-            console.print("[bold green]✅ ANALYSIS COMPLETE[/bold green]")
+            console.print("[bold green][OK] ANALYSIS COMPLETE[/bold green]")
             console.print("="*80 + "\n", style="green")
 
             if result.get("user_decision"):
@@ -247,7 +256,7 @@ def main():
     if Confirm.ask("[cyan]Analyze another stock?[/cyan]"):
         main()
     else:
-        console.print("\n[bold green]Thank you for using Stock Intelligence![/bold green] 📊\n")
+        console.print("\n[bold green]Thank you for using Stock Intelligence![/bold green]\n")
 
 
 if __name__ == "__main__":

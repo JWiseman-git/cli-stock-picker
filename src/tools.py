@@ -134,6 +134,19 @@ def format_research_summary(data: Dict[str, Any]) -> str:
     fundamentals = data["fundamentals"]
     historical = data["historical_data"]
 
+    # Helper functions to format values safely
+    def fmt_currency(val):
+        return f"${val:.2f}" if val else "N/A"
+
+    def fmt_pct(val):
+        return f"{val:.2f}%" if val else "N/A"
+
+    def fmt_num(val):
+        return f"{val:,}" if val else "N/A"
+
+    def fmt_float(val):
+        return f"{val:.2f}" if val else "N/A"
+
     summary = f"""
 ## Research Summary for {data['ticker']} - {company['name']}
 
@@ -143,21 +156,21 @@ def format_research_summary(data: Dict[str, Any]) -> str:
 - Description: {company['description'][:200] if company['description'] else 'N/A'}...
 
 ### Current Price Data
-- Current Price: ${price['current_price']:.2f if price['current_price'] else 0}
-- Day Range: ${price['day_low']:.2f if price['day_low'] else 0} - ${price['day_high']:.2f if price['day_high'] else 0}
-- 52-Week Range: ${price['52_week_low']:.2f if price['52_week_low'] else 0} - ${price['52_week_high']:.2f if price['52_week_high'] else 0}
-- Volume: {price['volume']:,} (Avg: {price['avg_volume']:,})
+- Current Price: {fmt_currency(price['current_price'])}
+- Day Range: {fmt_currency(price['day_low'])} - {fmt_currency(price['day_high'])}
+- 52-Week Range: {fmt_currency(price['52_week_low'])} - {fmt_currency(price['52_week_high'])}
+- Volume: {fmt_num(price['volume'])} (Avg: {fmt_num(price['avg_volume'])})
 
 ### Fundamental Metrics
-- Market Cap: ${fundamentals['market_cap']:,.0f if fundamentals['market_cap'] else 0}
-- P/E Ratio: {fundamentals['pe_ratio']:.2f if fundamentals['pe_ratio'] else 'N/A'}
-- Dividend Yield: {fundamentals['dividend_yield']*100:.2f if fundamentals['dividend_yield'] else 0}%
-- Beta: {fundamentals['beta']:.2f if fundamentals['beta'] else 'N/A'}
-- Profit Margin: {fundamentals['profit_margin']*100:.2f if fundamentals['profit_margin'] else 0}%
+- Market Cap: {fmt_num(fundamentals['market_cap'])}
+- P/E Ratio: {fmt_float(fundamentals['pe_ratio'])}
+- Dividend Yield: {fmt_pct(fundamentals['dividend_yield']*100) if fundamentals['dividend_yield'] else 'N/A'}
+- Beta: {fmt_float(fundamentals['beta'])}
+- Profit Margin: {fmt_pct(fundamentals['profit_margin']*100) if fundamentals['profit_margin'] else 'N/A'}
 
 ### Performance Trends
-- 90-Day Return: {historical['90_day_return']:.2f if historical['90_day_return'] else 0}%
-- Volatility: {historical['volatility']:.2f if historical['volatility'] else 0}%
+- 90-Day Return: {fmt_pct(historical['90_day_return'])}
+- Volatility: {fmt_pct(historical['volatility'])}
 
 ### Recent News
 """

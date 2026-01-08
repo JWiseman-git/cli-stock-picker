@@ -1,17 +1,17 @@
-# 📈 Stock Intelligence Multi-Agent System
+# Stock Intelligence Multi-Agent System
 
 A professional **LangGraph-based multi-agent system** for intelligent stock analysis featuring:
 
-- 🤖 **Multi-Agent Architecture**: Supervisor-orchestrated researcher and analyst agents
-- 🔄 **Human-in-the-Loop**: Interrupt-based approval workflow before recommendations
-- 💾 **Persistent Memory**: SQLite checkpointer for session resumption
-- 🎨 **Beautiful CLI**: Rich library for professional terminal UI
-- 📊 **Real-Time Data**: yfinance integration for live stock market data
-- 🧠 **Free LLM**: OpenRouter with Gemini 2.0 Flash Lite (no API costs)
+- **Multi-Agent Architecture**: Supervisor-orchestrated researcher and analyst agents
+- **Human-in-the-Loop**: Interrupt-based approval workflow before recommendations
+- **Session Memory**: In-memory checkpointer for conversation state
+- **Beautiful CLI**: Rich library for professional terminal UI
+- **Real-Time Data**: yfinance integration for live stock market data
+- **Free LLM**: OpenRouter with Gemini 2.0 Flash Lite (no API costs)
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```mermaid
 graph TD
@@ -48,7 +48,7 @@ graph TD
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -83,20 +83,25 @@ uv run python main.py
 
 **Example Session:**
 ```
-📈 Stock Intelligence Multi-Agent System
-Powered by LangGraph | OpenRouter | yfinance
+╔═══════════════════════════════════════════════════════════╗
+║           STOCK INTELLIGENCE                              ║
+╠═══════════════════════════════════════════════════════════╣
+║ # Stock Intelligence Multi-Agent System                   ║
+║                                                            ║
+║ Powered by LangGraph | OpenRouter | yfinance              ║
+╚═══════════════════════════════════════════════════════════╝
 
 Enter a stock ticker symbol to analyze
 Examples: AAPL, GOOGL, MSFT, TSLA
 
 Ticker: AAPL
 
-🤖 RESEARCHER
+[R] RESEARCHER
 ╭─────────────────────────────────────────────╮
 │ Research complete for AAPL. Key data...    │
 ╰─────────────────────────────────────────────╯
 
-🤖 ANALYST
+[A] ANALYST
 ╭─────────────────────────────────────────────╮
 │ Investment Analysis for AAPL:              │
 │                                            │
@@ -105,7 +110,9 @@ Ticker: AAPL
 │ ...                                        │
 ╰─────────────────────────────────────────────╯
 
-🛑 HUMAN REVIEW REQUIRED
+================================================================================
+>> HUMAN REVIEW REQUIRED
+================================================================================
 
 Options:
   • Type APPROVE to accept
@@ -113,12 +120,14 @@ Options:
 
 Your decision: APPROVE
 
-✅ ANALYSIS COMPLETE
+================================================================================
+[OK] ANALYSIS COMPLETE
+================================================================================
 ```
 
 ---
 
-## 🧩 Project Structure
+## Project Structure
 
 ```
 cli-stock-picker/
@@ -141,7 +150,7 @@ cli-stock-picker/
 
 ---
 
-## 🔧 Technical Details
+## Technical Details
 
 ### State Management
 
@@ -179,16 +188,17 @@ def human_review_node(state: AgentState) -> Command[Literal["supervisor"]]:
 
 ### Persistence
 
-SQLite checkpointer enables session resumption:
+In-memory checkpointer for session state management:
 
 ```python
-checkpointer = SqliteSaver.from_conn_string("./data/checkpoints.db")
+from langgraph.checkpoint.memory import MemorySaver
+checkpointer = MemorySaver()
 graph = workflow.compile(checkpointer=checkpointer)
 ```
 
 ---
 
-## 📚 Key Technologies
+## Key Technologies
 
 - **[LangGraph 1.0](https://langchain-ai.github.io/langgraph/)**: State machine orchestration
 - **[Pydantic 2.0](https://docs.pydantic.dev/)**: Runtime validation and type safety
@@ -199,49 +209,49 @@ graph = workflow.compile(checkpointer=checkpointer)
 
 ---
 
-## 🎯 Features Demonstrated
+## Features Demonstrated
 
 ### LangGraph Patterns (2025/2026)
-- ✅ StateGraph with Command pattern
-- ✅ Multi-agent supervisor architecture
-- ✅ Pydantic state schema with reducers
-- ✅ Human-in-the-loop with interrupt()
-- ✅ SqliteSaver persistent memory
-- ✅ Streaming execution updates
+- StateGraph with Command pattern
+- Multi-agent supervisor architecture
+- Pydantic state schema with reducers
+- Human-in-the-loop with interrupt()
+- MemorySaver for session state
+- Streaming execution updates
 
 ### Software Engineering
-- ✅ Clean architecture (separation of concerns)
-- ✅ Type hints throughout
-- ✅ Google-style docstrings
-- ✅ Professional error handling
-- ✅ Logging and observability
-- ✅ Environment-based configuration
+- Clean architecture (separation of concerns)
+- Type hints throughout
+- Google-style docstrings
+- Professional error handling
+- Logging and observability
+- Environment-based configuration
 
 ### Portfolio Quality
-- ✅ Professional README with Mermaid diagram
-- ✅ Clean CLI with Rich UI
-- ✅ Modular, testable code
-- ✅ Production-ready patterns
-- ✅ Extensible design for future agents
+- Professional README with Mermaid diagram
+- Clean CLI with Rich UI
+- Modular, testable code
+- Production-ready patterns
+- Extensible design for future agents
 
 ---
 
-## 🔮 Future Enhancements
+## Future Enhancements
 
-- [ ] Add **Technical Analyst** agent for chart pattern analysis
-- [ ] Implement **Risk Manager** agent for portfolio balancing
-- [ ] Add **News Sentiment** agent with NLP analysis
-- [ ] PostgreSQL checkpointer for production deployment
-- [ ] Web UI with Streamlit or FastAPI
-- [ ] Backtesting framework with historical data
-- [ ] Real-time alerting for price movements
-- [ ] Multi-stock portfolio optimization
+- Add Technical Analyst agent for chart pattern analysis
+- Implement Risk Manager agent for portfolio balancing
+- Add News Sentiment agent with NLP analysis
+- Database persistence (PostgreSQL/SQLite) for production
+- Web UI with Streamlit or FastAPI
+- Backtesting framework with historical data
+- Real-time alerting for price movements
+- Multi-stock portfolio optimization
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-Contributions welcome! Areas for improvement:
+Contributions are welcome. Areas for improvement:
 - Additional agent types (sentiment analysis, technical indicators)
 - Enhanced error recovery and retry logic
 - Unit tests for agent nodes
@@ -250,28 +260,15 @@ Contributions welcome! Areas for improvement:
 
 ---
 
-## 📄 License
+## License
 
 MIT License - See LICENSE file for details
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 Built with:
 - [LangChain](https://www.langchain.com/) - Agentic framework
 - [OpenRouter](https://openrouter.ai/) - LLM API gateway
 - [Yahoo Finance](https://finance.yahoo.com/) - Market data provider
-
----
-
-## 📞 Contact
-
-**Jordan**
-- GitHub: [@yourusername](https://github.com/yourusername)
-- LinkedIn: [Your Profile](https://linkedin.com/in/yourprofile)
-- Portfolio: [yourportfolio.com](https://yourportfolio.com)
-
----
-
-*Built with 🧠 and ☕ as a portfolio project demonstrating modern LangGraph multi-agent patterns*
