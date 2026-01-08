@@ -87,15 +87,15 @@ def stream_graph_execution(graph, input_state: dict, config: dict) -> Optional[d
         config: Thread configuration
 
     Returns:
-        Final state after execution (or None if interrupted)
+        Final state after execution (or tuple with interrupt info if interrupted)
     """
     try:
         final_state = None
 
         for event in graph.stream(input_state, config, stream_mode="updates"):
             if "__interrupt__" in event:
-                # Interrupt encountered - return control to caller
-                return event["__interrupt__"]
+                # Interrupt encountered - return interrupt tuple
+                return ("__interrupt__", event["__interrupt__"])
 
             # Display agent updates
             for node_name, node_state in event.items():
@@ -209,11 +209,12 @@ def run_analysis(ticker: str):
         result = stream_graph_execution(graph, input_state, config)
 
         # Handle interrupt if present
-        if result and isinstance(result, dict) and "__interrupt__" in str(result):
-            result = handle_interrupt(graph, result, config)
+        if result and isinstance(result, tuple) and result[0] == "__interrupt__":
+            interrupt_data = result[1]
+            result = handle_interrupt(graph, interrupt_data, config)
 
         # Display final result
-        if result:
+        if result and isinstance(result, dict):
             console.print("\n" + "="*80, style="green")
             console.print("[bold green][OK] ANALYSIS COMPLETE[/bold green]")
             console.print("="*80 + "\n", style="green")

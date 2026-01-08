@@ -7,7 +7,7 @@ A professional **LangGraph-based multi-agent system** for intelligent stock anal
 - **Session Memory**: In-memory checkpointer for conversation state
 - **Beautiful CLI**: Rich library for professional terminal UI
 - **Real-Time Data**: yfinance integration for live stock market data
-- **Free LLM**: OpenRouter with Gemini 2.0 Flash Lite (no API costs)
+- **Free LLM**: OpenRouter with GPT OSS 120B (no API costs)
 
 ---
 
@@ -43,7 +43,7 @@ graph TD
 |-------|------|-------|
 | **Supervisor** | Orchestrates workflow, routes between agents | Command pattern routing |
 | **Researcher** | Fetches stock data (price, fundamentals, news) | yfinance API |
-| **Analyst** | Synthesizes data into investment recommendation | LLM (Gemini via OpenRouter) |
+| **Analyst** | Synthesizes data into investment recommendation | LLM (GPT OSS 120B via OpenRouter) |
 | **Human Review** | Approves/rejects recommendation | interrupt() for user input |
 
 ---
@@ -202,7 +202,7 @@ graph = workflow.compile(checkpointer=checkpointer)
 
 - **[LangGraph 1.0](https://langchain-ai.github.io/langgraph/)**: State machine orchestration
 - **[Pydantic 2.0](https://docs.pydantic.dev/)**: Runtime validation and type safety
-- **[OpenRouter](https://openrouter.ai/)**: Unified LLM API (free Gemini tier)
+- **[OpenRouter](https://openrouter.ai/)**: Unified LLM API (free GPT OSS 120B tier)
 - **[yfinance](https://pypi.org/project/yfinance/)**: Real-time stock market data
 - **[Rich](https://rich.readthedocs.io/)**: Beautiful terminal UI
 - **[uv](https://github.com/astral-sh/uv)**: Fast Python package manager

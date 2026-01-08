@@ -12,8 +12,24 @@ import yfinance as yf
 from typing import Dict, Any
 from datetime import datetime, timedelta
 import logging
+import numpy as np
 
 logger = logging.getLogger(__name__)
+
+
+def _convert_to_native_types(obj):
+    """Convert numpy types to native Python types for serialization."""
+    if isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {key: _convert_to_native_types(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [_convert_to_native_types(item) for item in obj]
+    return obj
 
 
 def fetch_stock_data(ticker: str) -> Dict[str, Any]:
@@ -104,7 +120,8 @@ def fetch_stock_data(ticker: str) -> Dict[str, Any]:
             logger.warning(f"Could not fetch news for {ticker}: {e}")
             news_items = []
 
-        return {
+        # Convert all numpy types to native Python types for serialization
+        result = {
             "ticker": ticker.upper(),
             "fetch_timestamp": datetime.now().isoformat(),
             "company_info": company_info,
@@ -113,6 +130,7 @@ def fetch_stock_data(ticker: str) -> Dict[str, Any]:
             "historical_data": historical_data,
             "news": news_items,
         }
+        return _convert_to_native_types(result)
 
     except Exception as e:
         logger.error(f"Error fetching data for {ticker}: {e}")

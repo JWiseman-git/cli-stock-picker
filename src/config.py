@@ -22,7 +22,7 @@ class Config:
 
     Attributes:
         OPENROUTER_API_KEY: API key for OpenRouter
-        DEFAULT_MODEL: Free-tier Gemini model via OpenRouter
+        DEFAULT_MODEL: Free-tier GPT OSS 120B model via OpenRouter
         OPENROUTER_BASE_URL: API endpoint
         SQLITE_DB_PATH: Checkpointer database location
     """
@@ -30,7 +30,7 @@ class Config:
     OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
     DEFAULT_MODEL: str = os.getenv(
         "DEFAULT_MODEL",
-        "google/gemini-2.0-flash-lite-preview-02-05:free"
+        "openai/gpt-oss-120b:free"
     )
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
     SQLITE_DB_PATH: str = os.getenv("SQLITE_DB_PATH", "./data/checkpoints.db")
