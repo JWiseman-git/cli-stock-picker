@@ -1,6 +1,6 @@
 # Stock Intelligence Multi-Agent System
 
-A professional **LangGraph-based multi-agent system** for intelligent stock analysis featuring:
+A **LangGraph-based multi-agent system** for intelligent stock analysis featuring:
 
 - **Multi-Agent Architecture**: Supervisor-orchestrated researcher and analyst agents
 - **Human-in-the-Loop**: Interrupt-based approval workflow before recommendations
