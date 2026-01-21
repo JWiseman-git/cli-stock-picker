@@ -7,6 +7,7 @@ Professional CLI interface using Rich library for beautiful terminal output.
 
 import sys
 import uuid
+import os
 from typing import Optional
 from rich.console import Console
 from rich.panel import Panel
@@ -21,19 +22,25 @@ from src.graph import create_graph, create_thread_config
 from src.state import AgentState
 from src.config import Config
 
+# Enable UTF-8 mode on Windows to handle Unicode characters from LLM responses
+if sys.platform == "win32":
+    os.environ["PYTHONIOENCODING"] = "utf-8"
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('stock_intelligence.log'),
+        logging.FileHandler('stock_intelligence.log', encoding='utf-8'),
         logging.StreamHandler(sys.stdout)
     ]
 )
 logger = logging.getLogger(__name__)
 
-# Rich console
-console = Console()
+# Rich console - force_terminal=True uses ANSI sequences instead of legacy Windows API
+console = Console(force_terminal=True)
 
 
 def print_banner():
@@ -115,20 +122,29 @@ def stream_graph_execution(graph, input_state: dict, config: dict) -> Optional[d
         return None
 
 
-def handle_interrupt(graph, interrupt_data: dict, config: dict) -> Optional[dict]:
+def handle_interrupt(graph, interrupt_data, config: dict) -> Optional[dict]:
     """
     Handle human-in-the-loop interrupt.
 
     Args:
         graph: Compiled LangGraph
-        interrupt_data: Data from interrupt event
+        interrupt_data: Data from interrupt event (can be list/tuple of Interrupt objects)
         config: Thread configuration
 
     Returns:
         Final state after resume
     """
-    # Display interrupt prompt
-    prompt_text = interrupt_data.get("value", "Awaiting user input...")
+    # Extract prompt text from interrupt data
+    # LangGraph returns a list/tuple of Interrupt objects with a 'value' attribute
+    if isinstance(interrupt_data, (list, tuple)) and len(interrupt_data) > 0:
+        first_interrupt = interrupt_data[0]
+        prompt_text = getattr(first_interrupt, 'value', str(first_interrupt))
+    elif hasattr(interrupt_data, 'value'):
+        prompt_text = interrupt_data.value
+    elif isinstance(interrupt_data, dict):
+        prompt_text = interrupt_data.get("value", "Awaiting user input...")
+    else:
+        prompt_text = str(interrupt_data)
 
     console.print("\n" + "="*80, style="yellow")
     console.print("[bold yellow]>> HUMAN REVIEW REQUIRED[/bold yellow]")
