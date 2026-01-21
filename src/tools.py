@@ -200,3 +200,103 @@ def format_research_summary(data: Dict[str, Any]) -> str:
         summary += "No recent news available.\n"
 
     return summary
+
+
+def format_comparison_summary(data_a: Dict[str, Any], data_b: Dict[str, Any]) -> str:
+    """
+    Format comparison data into a side-by-side summary for LLM consumption.
+
+    Args:
+        data_a: Output from fetch_stock_data() for first stock
+        data_b: Output from fetch_stock_data() for second stock
+
+    Returns:
+        Formatted string with side-by-side comparison suitable for LLM analysis
+    """
+    # Helper functions to format values safely
+    def fmt_currency(val):
+        return f"${val:.2f}" if val else "N/A"
+
+    def fmt_pct(val):
+        return f"{val:.2f}%" if val else "N/A"
+
+    def fmt_num(val):
+        if val is None:
+            return "N/A"
+        if val >= 1_000_000_000_000:
+            return f"${val/1_000_000_000_000:.2f}T"
+        elif val >= 1_000_000_000:
+            return f"${val/1_000_000_000:.2f}B"
+        elif val >= 1_000_000:
+            return f"${val/1_000_000:.2f}M"
+        return f"{val:,}"
+
+    def fmt_float(val):
+        return f"{val:.2f}" if val else "N/A"
+
+    def fmt_pct_mult(val):
+        return f"{val*100:.2f}%" if val else "N/A"
+
+    ticker_a = data_a['ticker']
+    ticker_b = data_b['ticker']
+    company_a = data_a['company_info']
+    company_b = data_b['company_info']
+    price_a = data_a['price_data']
+    price_b = data_b['price_data']
+    fund_a = data_a['fundamentals']
+    fund_b = data_b['fundamentals']
+    hist_a = data_a['historical_data']
+    hist_b = data_b['historical_data']
+
+    summary = f"""
+## Stock Comparison: {ticker_a} vs {ticker_b}
+
+### Company Overview
+| Metric | {ticker_a} | {ticker_b} |
+|--------|------------|------------|
+| Name | {company_a['name']} | {company_b['name']} |
+| Sector | {company_a['sector']} | {company_b['sector']} |
+| Industry | {company_a['industry']} | {company_b['industry']} |
+
+### Price Data
+| Metric | {ticker_a} | {ticker_b} |
+|--------|------------|------------|
+| Current Price | {fmt_currency(price_a['current_price'])} | {fmt_currency(price_b['current_price'])} |
+| Day Range | {fmt_currency(price_a['day_low'])} - {fmt_currency(price_a['day_high'])} | {fmt_currency(price_b['day_low'])} - {fmt_currency(price_b['day_high'])} |
+| 52-Week Range | {fmt_currency(price_a['52_week_low'])} - {fmt_currency(price_a['52_week_high'])} | {fmt_currency(price_b['52_week_low'])} - {fmt_currency(price_b['52_week_high'])} |
+| Volume | {fmt_num(price_a['volume'])} | {fmt_num(price_b['volume'])} |
+| Avg Volume | {fmt_num(price_a['avg_volume'])} | {fmt_num(price_b['avg_volume'])} |
+
+### Fundamental Metrics
+| Metric | {ticker_a} | {ticker_b} |
+|--------|------------|------------|
+| Market Cap | {fmt_num(fund_a['market_cap'])} | {fmt_num(fund_b['market_cap'])} |
+| P/E Ratio | {fmt_float(fund_a['pe_ratio'])} | {fmt_float(fund_b['pe_ratio'])} |
+| Forward P/E | {fmt_float(fund_a['forward_pe'])} | {fmt_float(fund_b['forward_pe'])} |
+| PEG Ratio | {fmt_float(fund_a['peg_ratio'])} | {fmt_float(fund_b['peg_ratio'])} |
+| Dividend Yield | {fmt_pct_mult(fund_a['dividend_yield'])} | {fmt_pct_mult(fund_b['dividend_yield'])} |
+| Beta | {fmt_float(fund_a['beta'])} | {fmt_float(fund_b['beta'])} |
+| EPS | {fmt_currency(fund_a['eps'])} | {fmt_currency(fund_b['eps'])} |
+| Profit Margin | {fmt_pct_mult(fund_a['profit_margin'])} | {fmt_pct_mult(fund_b['profit_margin'])} |
+| Revenue Growth | {fmt_pct_mult(fund_a['revenue_growth'])} | {fmt_pct_mult(fund_b['revenue_growth'])} |
+
+### Performance Trends
+| Metric | {ticker_a} | {ticker_b} |
+|--------|------------|------------|
+| 90-Day Return | {fmt_pct(hist_a['90_day_return'])} | {fmt_pct(hist_b['90_day_return'])} |
+| Volatility | {fmt_pct(hist_a['volatility'])} | {fmt_pct(hist_b['volatility'])} |
+
+### Recent News - {ticker_a}
+"""
+    for i, article in enumerate(data_a['news'], 1):
+        summary += f"{i}. {article['title']} ({article['publisher']})\n"
+    if not data_a['news']:
+        summary += "No recent news available.\n"
+
+    summary += f"\n### Recent News - {ticker_b}\n"
+    for i, article in enumerate(data_b['news'], 1):
+        summary += f"{i}. {article['title']} ({article['publisher']})\n"
+    if not data_b['news']:
+        summary += "No recent news available.\n"
+
+    return summary

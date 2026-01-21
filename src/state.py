@@ -5,7 +5,7 @@ This module defines the AgentState schema using Pydantic BaseModel
 with annotated reducers for message handling.
 """
 
-from typing import Annotated, Sequence, Optional
+from typing import Annotated, Sequence, Optional, Literal
 from pydantic import BaseModel, Field
 from langchain_core.messages import BaseMessage
 from langgraph.graph import add_messages
@@ -46,6 +46,32 @@ class AgentState(BaseModel):
     user_decision: Optional[str] = Field(
         default=None,
         description="Human approval/rejection decision"
+    )
+
+    # Comparison mode fields
+    mode: Literal["single", "comparison"] = Field(
+        default="single",
+        description="Analysis mode: 'single' for one stock, 'comparison' for two stocks"
+    )
+
+    ticker_a: Optional[str] = Field(
+        default=None,
+        description="First stock ticker for comparison mode"
+    )
+
+    ticker_b: Optional[str] = Field(
+        default=None,
+        description="Second stock ticker for comparison mode"
+    )
+
+    research_data_a: Optional[dict] = Field(
+        default=None,
+        description="Research data for first stock in comparison mode"
+    )
+
+    research_data_b: Optional[dict] = Field(
+        default=None,
+        description="Research data for second stock in comparison mode"
     )
 
     class Config:

@@ -9,7 +9,7 @@ from typing import Literal
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langgraph.types import Command
 from src.state import AgentState
-from src.tools import fetch_stock_data, format_research_summary
+from src.tools import fetch_stock_data, format_research_summary, format_comparison_summary
 from src.config import create_llm
 import logging
 
@@ -32,22 +32,29 @@ def supervisor_node(state: AgentState) -> Command[Literal["researcher", "analyst
     Returns:
         Command specifying next agent to invoke
     """
-    messages = state.messages
+    is_comparison = state.mode == "comparison"
+
+    # Determine if research is complete based on mode
+    if is_comparison:
+        research_complete = state.research_data_a is not None and state.research_data_b is not None
+    else:
+        research_complete = state.research_data is not None
 
     # Initial request - route to researcher
-    if not state.research_data:
+    if not research_complete:
         logger.info("Supervisor: Routing to researcher agent")
+        mode_msg = "comparison" if is_comparison else "single stock"
         return Command(
             goto="researcher",
             update={
                 "messages": [
-                    SystemMessage(content="Supervisor: Initiating stock research.")
+                    SystemMessage(content=f"Supervisor: Initiating {mode_msg} research.")
                 ]
             }
         )
 
     # Research complete but no analysis - route to analyst
-    if state.research_data and not state.analysis_summary:
+    if research_complete and not state.analysis_summary:
         logger.info("Supervisor: Routing to analyst agent")
         return Command(
             goto="analyst",
@@ -89,7 +96,7 @@ def researcher_node(state: AgentState) -> Command[Literal["supervisor"]]:
     Responsibilities:
     - Extract ticker symbol from user messages
     - Fetch comprehensive stock data
-    - Store data in state.research_data
+    - Store data in state.research_data (single) or research_data_a/b (comparison)
     - Return to supervisor
 
     Args:
@@ -100,6 +107,15 @@ def researcher_node(state: AgentState) -> Command[Literal["supervisor"]]:
     """
     logger.info("Researcher agent: Starting research")
 
+    # Check if we're in comparison mode
+    if state.mode == "comparison":
+        return _research_comparison(state)
+    else:
+        return _research_single(state)
+
+
+def _research_single(state: AgentState) -> Command[Literal["supervisor"]]:
+    """Handle single stock research."""
     # Extract ticker from latest user message
     ticker = state.ticker
     if not ticker:
@@ -156,6 +172,61 @@ def researcher_node(state: AgentState) -> Command[Literal["supervisor"]]:
         )
 
 
+def _research_comparison(state: AgentState) -> Command[Literal["supervisor"]]:
+    """Handle comparison mode research for two stocks."""
+    ticker_a = state.ticker_a
+    ticker_b = state.ticker_b
+
+    if not ticker_a or not ticker_b:
+        error_msg = "Comparison mode requires two ticker symbols (ticker_a and ticker_b)."
+        logger.error(error_msg)
+        return Command(
+            goto="supervisor",
+            update={
+                "messages": [AIMessage(content=error_msg)],
+                "research_data_a": {"error": error_msg},
+                "research_data_b": {"error": error_msg}
+            }
+        )
+
+    try:
+        # Fetch data for both stocks sequentially
+        logger.info(f"Fetching data for {ticker_a}")
+        research_data_a = fetch_stock_data(ticker_a)
+
+        logger.info(f"Fetching data for {ticker_b}")
+        research_data_b = fetch_stock_data(ticker_b)
+
+        # Format comparison summary
+        comparison_summary = format_comparison_summary(research_data_a, research_data_b)
+
+        return Command(
+            goto="supervisor",
+            update={
+                "ticker_a": ticker_a,
+                "ticker_b": ticker_b,
+                "research_data_a": research_data_a,
+                "research_data_b": research_data_b,
+                "messages": [
+                    AIMessage(
+                        content=f"Research complete for {ticker_a} vs {ticker_b}. Comparison data collected:\n{comparison_summary}"
+                    )
+                ]
+            }
+        )
+    except Exception as e:
+        error_msg = f"Research failed: {str(e)}"
+        logger.error(error_msg)
+        return Command(
+            goto="supervisor",
+            update={
+                "messages": [AIMessage(content=error_msg)],
+                "research_data_a": {"error": error_msg},
+                "research_data_b": {"error": error_msg}
+            }
+        )
+
+
 def analyst_node(state: AgentState) -> Command[Literal["supervisor"]]:
     """
     Analyst agent that synthesizes research into investment recommendation.
@@ -174,6 +245,15 @@ def analyst_node(state: AgentState) -> Command[Literal["supervisor"]]:
     """
     logger.info("Analyst agent: Starting analysis")
 
+    # Check if we're in comparison mode
+    if state.mode == "comparison":
+        return _analyze_comparison(state)
+    else:
+        return _analyze_single(state)
+
+
+def _analyze_single(state: AgentState) -> Command[Literal["supervisor"]]:
+    """Handle single stock analysis."""
     if not state.research_data or "error" in state.research_data:
         return Command(
             goto="supervisor",
@@ -239,6 +319,88 @@ Provide a comprehensive investment analysis following the structured format."""
         )
 
 
+def _analyze_comparison(state: AgentState) -> Command[Literal["supervisor"]]:
+    """Handle comparative analysis of two stocks."""
+    # Validate we have data for both stocks
+    if not state.research_data_a or "error" in state.research_data_a:
+        return Command(
+            goto="supervisor",
+            update={
+                "messages": [
+                    AIMessage(content=f"Cannot analyze: No valid research data for {state.ticker_a}.")
+                ]
+            }
+        )
+
+    if not state.research_data_b or "error" in state.research_data_b:
+        return Command(
+            goto="supervisor",
+            update={
+                "messages": [
+                    AIMessage(content=f"Cannot analyze: No valid research data for {state.ticker_b}.")
+                ]
+            }
+        )
+
+    # Format comparison summary for LLM
+    comparison_summary = format_comparison_summary(state.research_data_a, state.research_data_b)
+
+    # Create comparative analysis prompt
+    system_prompt = """You are an expert financial analyst specializing in comparative stock analysis. Analyze the two stocks and provide:
+
+1. **Winner Pick**: Which stock is the better investment right now and why (one clear choice)
+2. **Head-to-Head Analysis**: Compare the two stocks across key dimensions:
+   - Valuation (P/E, PEG, forward P/E)
+   - Growth prospects (revenue growth, earnings trends)
+   - Financial health (margins, balance sheet strength)
+   - Risk profile (beta, volatility)
+3. **Key Differentiators**: 3-4 factors that most distinguish these two investments
+4. **Risk Factors for Each**: 2-3 specific concerns for each stock
+5. **Investment Scenarios**: When would you prefer Stock A over Stock B, and vice versa?
+
+Be objective, data-driven, and clearly explain your reasoning. Make a definitive recommendation."""
+
+    user_prompt = f"""Compare these two stocks and determine which is the better investment:
+
+{comparison_summary}
+
+Provide a comprehensive head-to-head analysis and pick a winner."""
+
+    try:
+        llm = create_llm(temperature=0.3)
+
+        messages_for_llm = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_prompt)
+        ]
+
+        response = llm.invoke(messages_for_llm)
+        analysis = response.content
+
+        logger.info("Comparison analysis complete")
+        return Command(
+            goto="supervisor",
+            update={
+                "analysis_summary": analysis,
+                "messages": [
+                    AIMessage(
+                        content=f"Comparative Analysis: {state.ticker_a} vs {state.ticker_b}:\n\n{analysis}"
+                    )
+                ]
+            }
+        )
+
+    except Exception as e:
+        error_msg = f"Analysis failed: {str(e)}"
+        logger.error(error_msg)
+        return Command(
+            goto="supervisor",
+            update={
+                "messages": [AIMessage(content=error_msg)]
+            }
+        )
+
+
 def human_review_node(state: AgentState) -> Command[Literal["supervisor"]]:
     """
     Human-in-the-loop review node using interrupt().
@@ -256,8 +418,16 @@ def human_review_node(state: AgentState) -> Command[Literal["supervisor"]]:
 
     logger.info("Human review: Triggering interrupt for approval")
 
+    # Create header based on mode
+    if state.mode == "comparison":
+        header = f"Comparison: {state.ticker_a} vs {state.ticker_b}"
+    else:
+        header = f"Analysis: {state.ticker}"
+
     # Present analysis and request approval
     prompt = f"""
+### {header}
+
 {state.analysis_summary}
 
 ---

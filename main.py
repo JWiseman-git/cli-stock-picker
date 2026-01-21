@@ -84,6 +84,52 @@ def print_agent_message(agent: str, message: str):
     console.print(Panel(message, border_style=color, box=box.ROUNDED))
 
 
+def get_analysis_mode() -> tuple:
+    """
+    Prompt user to choose analysis mode and collect ticker(s).
+
+    Returns:
+        Tuple of (mode, ticker_or_none, ticker_a_or_none, ticker_b_or_none)
+    """
+    console.print("\n[bold]Choose analysis mode:[/bold]")
+    console.print("  [cyan]1[/cyan] - Single stock analysis")
+    console.print("  [cyan]2[/cyan] - Compare two stocks\n")
+
+    choice = Prompt.ask("[cyan]Selection[/cyan]", choices=["1", "2"], default="1")
+
+    if choice == "1":
+        console.print("\n[bold]Enter a stock ticker symbol to analyze[/bold]")
+        console.print("[dim]Examples: AAPL, GOOGL, MSFT, TSLA[/dim]\n")
+
+        ticker = Prompt.ask("[cyan]Ticker[/cyan]").strip().upper()
+
+        if not ticker:
+            console.print("[red]Error: Ticker cannot be empty[/red]")
+            sys.exit(1)
+
+        return ("single", ticker, None, None)
+
+    else:
+        console.print("\n[bold]Enter two stock ticker symbols to compare[/bold]")
+        console.print("[dim]Examples: AAPL vs GOOGL, MSFT vs AMZN[/dim]\n")
+
+        ticker_a = Prompt.ask("[cyan]First ticker[/cyan]").strip().upper()
+        if not ticker_a:
+            console.print("[red]Error: First ticker cannot be empty[/red]")
+            sys.exit(1)
+
+        ticker_b = Prompt.ask("[cyan]Second ticker[/cyan]").strip().upper()
+        if not ticker_b:
+            console.print("[red]Error: Second ticker cannot be empty[/red]")
+            sys.exit(1)
+
+        if ticker_a == ticker_b:
+            console.print("[red]Error: Please enter two different tickers[/red]")
+            sys.exit(1)
+
+        return ("comparison", None, ticker_a, ticker_b)
+
+
 def stream_graph_execution(graph, input_state: dict, config: dict) -> Optional[dict]:
     """
     Execute graph with streaming output display.
@@ -193,14 +239,20 @@ def handle_interrupt(graph, interrupt_data, config: dict) -> Optional[dict]:
         return None
 
 
-def run_analysis(ticker: str):
+def run_analysis(mode: str, ticker: Optional[str] = None, ticker_a: Optional[str] = None, ticker_b: Optional[str] = None):
     """
     Run complete stock analysis workflow.
 
     Args:
-        ticker: Stock ticker symbol
+        mode: Analysis mode ('single' or 'comparison')
+        ticker: Stock ticker symbol (for single mode)
+        ticker_a: First stock ticker (for comparison mode)
+        ticker_b: Second stock ticker (for comparison mode)
     """
-    console.print(f"\n[bold cyan]Starting analysis for {ticker}...[/bold cyan]\n")
+    if mode == "comparison":
+        console.print(f"\n[bold cyan]Starting comparison: {ticker_a} vs {ticker_b}...[/bold cyan]\n")
+    else:
+        console.print(f"\n[bold cyan]Starting analysis for {ticker}...[/bold cyan]\n")
 
     try:
         # Validate configuration
@@ -215,11 +267,20 @@ def run_analysis(ticker: str):
         config = create_thread_config(thread_id)
         logger.info(f"Session thread: {thread_id}")
 
-        # Initial input
-        input_state = {
-            "messages": [HumanMessage(content=f"Analyze stock {ticker}")],
-            "ticker": ticker
-        }
+        # Build initial input based on mode
+        if mode == "comparison":
+            input_state = {
+                "messages": [HumanMessage(content=f"Compare stocks {ticker_a} vs {ticker_b}")],
+                "mode": "comparison",
+                "ticker_a": ticker_a,
+                "ticker_b": ticker_b
+            }
+        else:
+            input_state = {
+                "messages": [HumanMessage(content=f"Analyze stock {ticker}")],
+                "mode": "single",
+                "ticker": ticker
+            }
 
         # Execute graph with streaming
         result = stream_graph_execution(graph, input_state, config)
@@ -256,21 +317,15 @@ def main():
     """Main CLI entry point."""
     print_banner()
 
-    # Get ticker from user
-    console.print("\n[bold]Enter a stock ticker symbol to analyze[/bold]")
-    console.print("[dim]Examples: AAPL, GOOGL, MSFT, TSLA[/dim]\n")
+    # Get analysis mode and ticker(s) from user
+    mode, ticker, ticker_a, ticker_b = get_analysis_mode()
 
-    ticker = Prompt.ask("[cyan]Ticker[/cyan]").strip().upper()
-
-    if not ticker:
-        console.print("[red]Error: Ticker cannot be empty[/red]")
-        sys.exit(1)
-
-    run_analysis(ticker)
+    # Run analysis based on mode
+    run_analysis(mode=mode, ticker=ticker, ticker_a=ticker_a, ticker_b=ticker_b)
 
     # Ask to analyze another
     console.print()
-    if Confirm.ask("[cyan]Analyze another stock?[/cyan]"):
+    if Confirm.ask("[cyan]Run another analysis?[/cyan]"):
         main()
     else:
         console.print("\n[bold green]Thank you for using Stock Intelligence![/bold green]\n")
